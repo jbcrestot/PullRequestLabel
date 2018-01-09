@@ -92,7 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // getCurrentTabUrl((url) => {
 
   let token = undefined;
-  const githubUrl = 'https://api.github.com';
+  // const githubUrl = 'https://api.github.com/repos/jbcrestot/PullRequestLabel/pulls';
+  const githubUrl = 'https://api.github.com/repos/jbcrestot/PullRequestLabel/issues?labels=enhancement';
 
     const continueplz = () => {
       console.log('token', token);
