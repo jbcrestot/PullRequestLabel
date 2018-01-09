@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pull Request Label counter</title>
+  <style>
+    body: { padding: 10px; }
+  </style>
+</head>
+
+<body>
+  <p class="">
+    <label for="labels" >Write here the labels you wan't to survey (comma separated):</label>
+    <input id="labels" type="text" style="width: 100%" placeholder="need tech review, need PO validation, ..."/>
+  </p>
+  <p>
+    <label for="oauthToken" >OAuth token:</label>
+    <input id="oauthToken" type="text" />
+  </p>
+  <div id="status"></div>
+  <button id="save">Save</button>
+
+  <script src="options.js"></script>
+</body>
+</html>
