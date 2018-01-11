@@ -8,14 +8,32 @@
 </head>
 
 <body>
-  <p class="">
+  <p class="usage">
     <label for="labels" >Write here the labels you wan't to survey (comma separated):</label>
     <input id="labels" type="text" style="width: 100%" placeholder="need tech review, need PO validation, ..."/>
   </p>
-  <p>
-    <label for="oauthToken" >OAuth token:</label>
-    <input id="oauthToken" type="text" />
-  </p>
+  <fieldset style="margin-bottom: 10px">
+    <legend>Github -configuration</legend>
+    <cite>
+      To be able to access to your repository, you need to create a personnal
+      access token in your github profil (help available here:
+      <a href="https://github.com/jbcrestot/PullRequestLabel/ACCESS_TOKEN.md">
+        access token tutorial
+      </a>)
+    </cite>
+    <p>
+      <label for="owner">Owner:</label>
+      <input id="owner" type="text" placeholder="CanalTP" />
+    </p>
+    <p>
+      <label for="repository">Repository:</label>
+      <input id="repository" type="text" placeholder="RNNavitiaSDK" />
+    </p>
+    <p>
+      <label for="oauthToken" >OAuth token:</label>
+      <input id="oauthToken" type="text" placeholder="" />
+    </p>
+  </fieldset>
   <div id="status"></div>
   <button id="save">Save</button>
 

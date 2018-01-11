@@ -1,11 +1,17 @@
 // Saves options to chrome.storage.sync.
 function save_options() {
   const labels = document.getElementById('labels').value;
+  const owner = document.getElementById('owner').value;
+  const repository = document.getElementById('repository').value;
   const oauthToken = document.getElementById('oauthToken').value;
-  console.log('labels to save', labels);
+  // chrome.runtime.getBackgroundPage((window) => {
+  //   console.log('gbpage', window, testGithubAPI)
+  // });
 
   chrome.storage.sync.set({
     labels: labels,
+    owner: owner,
+    repository: repository,
     oauthToken: oauthToken,
   }, function() {
     // Update status to let user know options were saved.
@@ -20,13 +26,15 @@ function save_options() {
 // Restores select box and checkbox state using the preferences
 // stored in chrome.storage.
 function restore_options() {
-  // Use default value color = 'red' and likesColor = true.
   chrome.storage.sync.get({
     labels: '',
+    owner: '',
+    repository: '',
     oauthToken: '',
   }, function(items) {
-    console.log('labels restored :', items.labels);
     document.getElementById('labels').value = items.labels;
+    document.getElementById('owner').value = items.owner;
+    document.getElementById('repository').value = items.repository;
     document.getElementById('oauthToken').value = items.oauthToken;
   });
 }
