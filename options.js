@@ -4,9 +4,8 @@ function save_options() {
   const owner = document.getElementById('owner').value;
   const repository = document.getElementById('repository').value;
   const oauthToken = document.getElementById('oauthToken').value;
-  // chrome.runtime.getBackgroundPage((window) => {
-  //   console.log('gbpage', window, testGithubAPI)
-  // });
+  // clean callback message
+  document.querySelector('#testConfig').textContent = '';
 
   chrome.storage.sync.set({
     labels: labels,
@@ -15,11 +14,32 @@ function save_options() {
     oauthToken: oauthToken,
   }, function() {
     // Update status to let user know options were saved.
-    var status = document.getElementById('status');
+    var status = document.querySelector('#status');
     status.textContent = 'Options saved.';
     setTimeout(function() {
       status.textContent = '';
-    }, 750);
+    }, 1000);
+
+    // test config
+    var testConfig = document.querySelector('#testConfig');
+    testConfig.textContent = 'Testing your configuration';
+    chrome.runtime.sendMessage({action: 'pingAPI'}, function(response) {
+      if (response === VALID_CONFIG) {
+        testConfig.textContent = "You're all setup!";
+        chrome.browserAction.enable();
+        setTimeout(function() {
+          testConfig.textContent = '';
+        }, 5000);
+      } else if (response === BAD_CONFIG) {
+        testConfig.textContent = "API reached, but can't find your repo ; plz check your configuration.";
+        chrome.browserAction.disable();
+      } else if (response === INVALID_TOKEN) {
+        testConfig.textContent = "API can't be reach, you probably have a pb with your token";
+        chrome.browserAction.disable();
+      } else {
+        console.log('wtf', response);
+      }
+    });
   });
 }
 
