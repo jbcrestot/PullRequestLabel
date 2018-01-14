@@ -5,6 +5,11 @@
   "description": "This extension will display the number of github Pull Request according to specific label",
   "version": "1.0",
 
+  "background": {
+    "scripts": ["eventPage.js"],
+    "persistent": false
+  },
+
   "options_ui": {
     "page": "options.html",
     "chrome_style": true
@@ -15,10 +20,7 @@
     "default_popup": "popup.html"
   },
   "permissions": [
-    "activeTab",
     "storage",
-    "https://*.github.com/*",
-    "http://www.google.com/",
-    "https://www.google.com/"
+    "https://*.github.com/*"
   ]
 }
