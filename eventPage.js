@@ -1,5 +1,3 @@
-
-
 // test at init
 chrome.runtime.onInstalled.addListener(() => {
   console.log('OnInstalled');
@@ -26,16 +24,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       pingAPI(sendResponse, sendResponse);
       break;
     case 'getFilteredLabels':
-      getFilteredLabels();
+      getFilteredLabels(sendResponse, sendResponse);
       break;
   }
 
   // we need to return true, to indicate sendResponse will be handle asynchronously
   return true;
 });
-
-let token = '';
-let labels = [];
 
 const VALID_CONFIG = 10;
 const BAD_CONFIG = 11;
@@ -47,7 +42,7 @@ const INVALID_TOKEN = 12;
 const pingAPI = (success, error) => {
   getParameters((config) => {
     call(
-      ['repos', config.owner, config.repository, 'issues'],
+      getQuery(config.owner, config.repository),
       config.oauthToken,
       (response) => {
         if (!response.errors) {
@@ -57,7 +52,7 @@ const pingAPI = (success, error) => {
         }
       },
       (errorReason) => {
-        console.log('pingAPI error with reason: '+ errorReason);
+        console.log('pingAPI error with reason: ', errorReason);
         error(errorReason);
       }
     )
@@ -65,34 +60,81 @@ const pingAPI = (success, error) => {
 };
 
 const getFilteredLabels = (success, error) => {
-  console.log(error);
   getParameters((config) => {
     call(
-      ['repos', config.owner, config.repository, 'issues'],
+      getQuery(config.owner, config.repository),
       config.oauthToken,
       (response) => {
-
-        filterResponse(config.labels, response);
-
-        success('ok');
+        const orderedPRByLabel = orderPRByLabel(response);
+        const filteredPRByLabel = filterPRByLabel(config.labels, orderedPRByLabel);
+        // if no object found
+        !Object.keys(filteredPRByLabel).length
+          ? success(null)
+          : success(getView(filteredPRByLabel));
       },
-      (errorStatus, errorResponse) => {
-        console.log(error);
-        error('ko');
+      (errorReason) => {
+        console.log('getFilteredLabels error with reason: ', errorReason);
+        error(errorReason);
       }
     )
   });
 };
 
-const filterResponse = (watchedLabels, response) => {
-  const arrayLabels = watchedLabels.split(',').map(label => label.trim())
-  console.log(arrayLabels, response);
+const getView = (data) => {
+  let html =
+`<table>
+  <tr>
+    <th>label</th>
+    <th>number of Pull Request</th>
+  </tr>`;
+  Object.keys(data).forEach((label) => {
+      html += `
+     <tr>
+       <td>${label}</td>
+       <td>${data[label].length}</td>
+     </tr>`;
+  });
+
+return html +
+`
+</table>
+`;
 };
 
-const call = (options, token, success, error) => {
-  const url = 'https://api.github.com/graphql';
-  const query = `{
-      repository(owner:"${options[1]}", name:"${options[2]}") {
+const orderPRByLabel = (data) => {
+  let orderedPRByLabel = {};
+
+  // loop over each PR
+  data.data.repository.pullRequests.nodes.forEach((pr) => {
+    // loop over each labels
+    pr.labels.edges.forEach((label) => {
+      orderedPRByLabel[label.node.name]
+        ? orderedPRByLabel[label.node.name].push(pr.title)
+        : orderedPRByLabel[label.node.name] = [pr.title];
+    });
+  });
+
+  return orderedPRByLabel;
+};
+
+const filterPRByLabel = (watchedLabels, labels) => {
+  const arrayLabels = watchedLabels
+    .split(',')
+    .map(label => label.trim());
+
+  const filteredPRByLabel = {};
+  Object.keys(labels).forEach(label => {
+    if (arrayLabels.includes(label)) {
+      filteredPRByLabel[label] = labels[label];
+    }
+  });
+
+  return filteredPRByLabel
+};
+
+const getQuery = (owner, repository) => {
+  return `{
+      repository(owner:"${owner}", name:"${repository}") {
         pullRequests(last:100, states:OPEN) {
           nodes {
             title
@@ -101,6 +143,7 @@ const call = (options, token, success, error) => {
                 node {
                   id
                   name
+                  color
                 }
               }
             }
@@ -108,6 +151,10 @@ const call = (options, token, success, error) => {
         }
       }
     }`;
+};
+
+const call = (query, token, success, error) => {
+  const url = 'https://api.github.com/graphql';
 
   var xhr = new XMLHttpRequest();
   xhr.responseType = 'json';
