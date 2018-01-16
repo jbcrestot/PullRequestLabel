@@ -12,10 +12,6 @@ chrome.runtime.onSuspend.addListener(() => {
   console.log('onSuspend');
 })
 
-// recurent calls
-
-
-
 // extension calls
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('inMessage');
@@ -68,7 +64,7 @@ const getFilteredLabels = (success, error) => {
         const orderedPRByLabel = orderPRByLabel(response);
         const filteredPRByLabel = filterPRByLabel(config.labels, orderedPRByLabel);
         // if no object found
-        !Object.keys(filteredPRByLabel).length
+        !filteredPRByLabel.size
           ? success(null)
           : success(getView(filteredPRByLabel));
       },
@@ -80,6 +76,9 @@ const getFilteredLabels = (success, error) => {
   });
 };
 
+/**
+ * getView return an html view for popup
+ */
 const getView = (data) => {
   let html =
 `<table>
@@ -87,49 +86,56 @@ const getView = (data) => {
     <th>label</th>
     <th>number of Pull Request</th>
   </tr>`;
-  Object.keys(data).forEach((label) => {
+  data.forEach((value, key) => {
       html += `
      <tr>
-       <td>${label}</td>
-       <td>${data[label].length}</td>
+       <td>${key}</td>
+       <td>${value.length}</td>
      </tr>`;
   });
+  console.log(html);
 
 return html +
 `
-</table>
-`;
+</table>`;
 };
 
+/**
+ * getFilteredLabels is used to format data by regrouping PR name by labels and
+ * sorting by Pull Request number
+ */
 const orderPRByLabel = (data) => {
-  let orderedPRByLabel = {};
+  let orderedPRByLabel = new Map();
 
   // loop over each PR
   data.data.repository.pullRequests.nodes.forEach((pr) => {
     // loop over each labels
     pr.labels.edges.forEach((label) => {
-      orderedPRByLabel[label.node.name]
-        ? orderedPRByLabel[label.node.name].push(pr.title)
-        : orderedPRByLabel[label.node.name] = [pr.title];
+      orderedPRByLabel.has(label.node.name)
+        ? orderedPRByLabel.get(label.node.name).push(pr.title)
+        : orderedPRByLabel.set(label.node.name, [pr.title]);
     });
   });
+
+  // sorting by pull request number
+  orderedPRByLabel = new Map([...orderedPRByLabel.entries()].sort(
+    (a, b) => b[1].length - a[1].length
+  ));
 
   return orderedPRByLabel;
 };
 
+/**
+ * filterPRByLabel will return data for watched labels
+ */
 const filterPRByLabel = (watchedLabels, labels) => {
   const arrayLabels = watchedLabels
     .split(',')
-    .map(label => label.trim());
+    .map(label => label.trim().toLowerCase());
 
-  const filteredPRByLabel = {};
-  Object.keys(labels).forEach(label => {
-    if (arrayLabels.includes(label)) {
-      filteredPRByLabel[label] = labels[label];
-    }
-  });
-
-  return filteredPRByLabel
+  return new Map([...labels.entries()].filter(
+    el => arrayLabels.includes(el[0].toLowerCase())
+  ));
 };
 
 const getQuery = (owner, repository) => {
