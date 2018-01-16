@@ -1,3 +1,8 @@
+const VALID_CONFIG = 10;
+const BAD_CONFIG = 11;
+const INVALID_TOKEN = 12;
+const ALARM_ICON_INDICATOR = 'iconIndicator';
+
 // test at init
 chrome.runtime.onInstalled.addListener(() => {
   console.log('OnInstalled');
@@ -11,6 +16,19 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.runtime.onSuspend.addListener(() => {
   console.log('onSuspend');
 })
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  console.log('onAlarm', alarm);
+
+  switch(alarm.name) {
+    case ALARM_ICON_INDICATOR:
+      updateIconIndicator();
+      break;
+    default:
+      console.log('default alarm switch', alarm);
+      break;
+  }
+});
 
 // extension calls
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -28,9 +46,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-const VALID_CONFIG = 10;
-const BAD_CONFIG = 11;
-const INVALID_TOKEN = 12;
+// periodic calls
+chrome.alarms.create(ALARM_ICON_INDICATOR, {
+  delayInMinutes: 0,
+  periodInMinutes: 5,
+});
 
 /**
  * pingAPI will test if user params are ok and disable icon if not
@@ -75,6 +95,30 @@ const getFilteredLabels = (success, error) => {
     )
   });
 };
+
+const updateIconIndicator = () => {
+  getParameters((config) => {
+    call(
+      getQuery(config.owner, config.repository),
+      config.oauthToken,
+      (response) => {
+        const orderedPRByLabel = orderPRByLabel(response);
+        const filteredPRByLabel = filterPRByLabel(config.labels, orderedPRByLabel);
+        // if no object found
+        if (!filteredPRByLabel.size) {
+          return;
+        }
+
+        chrome.browserAction.setBadgeText({text: [...filteredPRByLabel.values()][0].length.toString()});
+        // chrome.browserAction.setBadgeBackgroundColor({color: '#ff00ff'});
+      },
+      (errorReason) => {
+        console.log('updateIconIndicator error with reason: ', errorReason);
+
+      }
+    )
+  });
+}
 
 /**
  * getView return an html view for popup

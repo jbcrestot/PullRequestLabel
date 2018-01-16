@@ -21,6 +21,8 @@
   },
   "permissions": [
     "storage",
+    "alarms",
+    "notifications",
     "https://*.github.com/*"
   ]
 }
