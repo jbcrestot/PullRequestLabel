@@ -84,7 +84,7 @@ const getFilteredLabels = (success, error) => {
         const orderedPRByLabel = orderPRByLabel(response);
         const filteredPRByLabel = filterPRByLabel(config.labels, orderedPRByLabel);
         // if no object found
-        !filteredPRByLabel.size
+        !filteredPRByLabel.length
           ? success(null)
           : success(getView(filteredPRByLabel));
       },
@@ -105,12 +105,13 @@ const updateIconIndicator = () => {
         const orderedPRByLabel = orderPRByLabel(response);
         const filteredPRByLabel = filterPRByLabel(config.labels, orderedPRByLabel);
         // if no object found
-        if (!filteredPRByLabel.size) {
+        if (!filteredPRByLabel.length) {
           return;
         }
 
-        chrome.browserAction.setBadgeText({text: [...filteredPRByLabel.values()][0].length.toString()});
-        // chrome.browserAction.setBadgeBackgroundColor({color: '#ff00ff'});
+        const topLabel = filteredPRByLabel[0];
+        chrome.browserAction.setBadgeText({text: topLabel.pullRequests.length.toString()});
+        chrome.browserAction.setBadgeBackgroundColor({color: '#'+topLabel.color});
       },
       (errorReason) => {
         console.log('updateIconIndicator error with reason: ', errorReason);
@@ -123,21 +124,20 @@ const updateIconIndicator = () => {
 /**
  * getView return an html view for popup
  */
-const getView = (data) => {
+const getView = (filteredLabels) => {
   let html =
 `<table>
   <tr>
     <th>label</th>
     <th>number of Pull Request</th>
   </tr>`;
-  data.forEach((value, key) => {
+  filteredLabels.forEach((label) => {
       html += `
      <tr>
-       <td>${key}</td>
-       <td>${value.length}</td>
+       <td>${label.name}</td>
+       <td>${label.pullRequests.length}</td>
      </tr>`;
   });
-  console.log(html);
 
 return html +
 `
@@ -147,24 +147,56 @@ return html +
 /**
  * getFilteredLabels is used to format data by regrouping PR name by labels and
  * sorting by Pull Request number
+ *
+ * labels: [
+ *   {
+ *     name: string,
+ *     color: string,
+ *     pullRequests: [
+ *       {
+ *         title: string,
+ *         url: string,
+ *         reviews: [
+ *           author: string,
+ *           state: string,
+ *         ],
+ *       }
+ *     ]
+ *   }
+ * ]
  */
 const orderPRByLabel = (data) => {
-  let orderedPRByLabel = new Map();
+  let orderedPRByLabel = [];
 
   // loop over each PR
   data.data.repository.pullRequests.nodes.forEach((pr) => {
+    const currentPullRequest = {
+      title: pr.title,
+      url: pr.url,
+      reviews: pr.reviews.nodes.map(review => {
+        return {
+          author: review.author.login,
+          state: review.state,
+        }
+      }),
+    };
     // loop over each labels
-    pr.labels.edges.forEach((label) => {
-      orderedPRByLabel.has(label.node.name)
-        ? orderedPRByLabel.get(label.node.name).push(pr.title)
-        : orderedPRByLabel.set(label.node.name, [pr.title]);
+    pr.labels.nodes.forEach((label) => {
+      const foundLabelId = orderedPRByLabel.findIndex((el) => label.name === el.name)
+      foundLabelId > -1
+        ? orderedPRByLabel[foundLabelId].pullRequests.push(currentPullRequest)
+        : orderedPRByLabel.push({
+          name: label.name,
+          color: label.color,
+          pullRequests: [currentPullRequest]
+        });
     });
   });
 
   // sorting by pull request number
-  orderedPRByLabel = new Map([...orderedPRByLabel.entries()].sort(
-    (a, b) => b[1].length - a[1].length
-  ));
+  orderedPRByLabel = orderedPRByLabel.sort(
+    (a, b) => b.pullRequests.length - a.pullRequests.length
+  );
 
   return orderedPRByLabel;
 };
@@ -172,29 +204,35 @@ const orderPRByLabel = (data) => {
 /**
  * filterPRByLabel will return data for watched labels
  */
-const filterPRByLabel = (watchedLabels, labels) => {
+const filterPRByLabel = (watchedLabels, sortedLabels) => {
   const arrayLabels = watchedLabels
     .split(',')
     .map(label => label.trim().toLowerCase());
 
-  return new Map([...labels.entries()].filter(
-    el => arrayLabels.includes(el[0].toLowerCase())
-  ));
+  return sortedLabels.filter(
+    sortedLabel => arrayLabels.includes(sortedLabel.name.toLowerCase())
+  );
 };
 
 const getQuery = (owner, repository) => {
   return `{
       repository(owner:"${owner}", name:"${repository}") {
-        pullRequests(last:100, states:OPEN) {
+        pullRequests(first: 100, states: OPEN) {
           nodes {
             title
-            labels(last:100) {
-              edges {
-                node {
-                  id
-                  name
-                  color
+            url
+            labels(last: 10) {
+              nodes {
+                name
+                color
+              }
+            }
+            reviews(last: 10, states: APPROVED) {
+              nodes {
+                author {
+                  login
                 }
+                state
               }
             }
           }
