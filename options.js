@@ -21,20 +21,20 @@ function save_options() {
     }, 1000);
 
     // test config
-    var testConfig = document.querySelector('#testConfig');
-    testConfig.textContent = 'Testing your configuration';
+
+    updateTestConfig('Testing your configuration');
     chrome.runtime.sendMessage({action: 'pingAPI'}, function(response) {
       if (response === VALID_CONFIG) {
-        testConfig.textContent = "You're all setup!";
+        updateTestConfig("You're all setup!");
         chrome.browserAction.enable();
         setTimeout(function() {
-          testConfig.textContent = '';
+          updateTestConfig();
         }, 5000);
       } else if (response === BAD_CONFIG) {
-        testConfig.textContent = "API reached, but can't find your repo ; plz check your configuration.";
+        updateTestConfig("API reached, but can't find your repo ; plz check your configuration.");
         chrome.browserAction.disable();
       } else if (response === INVALID_TOKEN) {
-        testConfig.textContent = "API can't be reach, you probably have a pb with your token";
+        updateTestConfig("API can't be reach, you probably have a pb with your token");
         chrome.browserAction.disable();
       } else {
         console.log('wtf', response);
@@ -60,3 +60,36 @@ function restore_options() {
 }
 document.addEventListener('DOMContentLoaded', restore_options);
 document.getElementById('save').addEventListener('click', save_options);
+
+const testKey = () => {
+  getParameters((config) => {
+    call(
+      getRateLimitQuery(),
+      config.oauthToken,
+      (response) => {
+        if (!response.errors) {
+          const data = response.data;
+          const resetDate = new Date(data.rateLimit.resetAt);
+          updateTestConfig(`RateLimit remaining:
+            ${data.rateLimit.remaining}/${data.rateLimit.limit} for
+            user: ${data.viewer.login}
+            reset at: ${resetDate.toUTCString()}.`);
+        } else {
+          updateTestConfig('[testKey] a problem occure with github API')
+        }
+      },
+      (errorReason) => {
+        log('[testKey] error with reason: ', errorReason);
+        error(errorReason);
+      }
+    )
+  });
+
+};
+document.getElementById('testKey').addEventListener('click', testKey);
+
+const testConfig = document.querySelector('#testConfig');
+const updateTestConfig = (text = '') => {
+  if (testConfig)
+    testConfig.textContent = text;
+}

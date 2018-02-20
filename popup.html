@@ -42,6 +42,7 @@
         padding: 15px;
       }
     </style>
+    <link rel="stylesheet" type="text/css" href="loader.css" />
 
     <!--
       - JavaScript and HTML must be in separate files: see our Content Security
@@ -55,6 +56,12 @@
 
   <body>
     <p>Watched Pull Request</p>
+    <div id="loader">
+      <div id="circle">
+        <div id="shadow"></div>
+        <div id="box"></div>
+      </div>
+    </div>
     <div id="container">
       <div id="pr"></div>
     </div>

@@ -184,6 +184,24 @@ const getQuery = (owner, repository) => {
     }`;
 };
 
+const getRateLimitQuery = () => `query {
+  viewer {
+    login
+  }
+  rateLimit {
+    limit
+    cost
+    remaining
+    resetAt
+  }
+}`;
+
+const githubMock = JSON.parse(`
+[{"name":"need QA validation","color":"cc317c","pullRequests":[{"id":"MDExOlB1bGxSZXF1ZXN0MTYxMTU2Mzk5","title":"[POC] Veery SDK","url":"https://github.com/CanalTP/ADM/pull/594","reviews":[{"author":"staifn","state":"APPROVED"},{"author":"jbcrestot","state":"APPROVED"},{"author":"MoOx","state":"APPROVED"}]},{"id":"MDExOlB1bGxSZXF1ZXN0MTYyOTkwNjk2","title":"Rcu 778 center button","url":"https://github.com/CanalTP/ADM/pull/615","reviews":[{"author":"MoOx","state":"APPROVED"},{"author":"staifn","state":"APPROVED"},{"author":"VincentCATILLON","state":"APPROVED"},{"author":"jbcrestot","state":"APPROVED"}]}]},{"name":"need reviews","color":"fbca04","pullRequests":[{"id":"MDExOlB1bGxSZXF1ZXN0MTY0MDMwNDQx","title":"RCU-866 track events with a minimal edit in files","url":"https://github.com/CanalTP/ADM/pull/626","reviews":[{"author":"staifn","state":"APPROVED"}]},
+{"id":"MDExOlB1bGxSZXF1ZXN0MTY0MDMwNDQjb","title":"RCU-866 track events with a minimal edit in files","url":"https://github.com/CanalTP/ADM/pull/626","reviews":[{"author":"staifn","state":"APPROVED"}]}
+]}]
+`);
+
 const call = (query, token, success, error) => {
   const url = 'https://api.github.com/graphql';
 
@@ -230,24 +248,24 @@ const getData = (callback) => {
 }
 
 const clearData = () => {
-  chrome.stoarge.sync.clear('data', () => {
+  chrome.storage.sync.clear(() => {
     log('[clearData] data have been cleared');
   });
 }
 
 const addPullRequestToNotificationStack = (pullRequest, callback) => {
-  log('***********')
+  log('[addPullRequestToNotificationStack] incoming - pr: ', pullRequest);
   chrome.storage.sync.get({
     notifs: [],
   }, (items) => {
-    log('[addPullRequestToNotificationStack] getData notifs: ', typeof items.notifs, items.notifs);
+    log('[addPullRequestToNotificationStack] getData notifs: ', items.notifs);
     items.notifs.push(pullRequest)
     // save
     chrome.storage.sync.set({
       notifs: items.notifs,
     }, () => {
       log('[addPullRequestToNotificationStack] saving notifs: ', items.notifs)
-      callback('ok');
+      callback && callback('ok');
     });
   });
 };
@@ -255,8 +273,23 @@ const addPullRequestToNotificationStack = (pullRequest, callback) => {
 /**
  * Return the next notification data to display
  */
-const getNextNotif = () => {
-  return 1;
+const getNextNotif = (callback) => {
+  log('[getNextNotif] incoming - cb: ', callback);
+  chrome.storage.sync.get({
+    notifs: [],
+  }, (items) => {
+    log('[getNextNotif] getData notifs: ', items.notifs);
+    const firstPullRequest = items.notifs.shift();
+
+    // now we save back the notifications
+    chrome.storage.sync.set({
+      notifs: items.notifs,
+    }, () => {
+      log('[getNextNotif] saving notifs: ', items.notifs)
+    });
+
+    callback && callback(firstPullRequest);
+  });
 };
 
 const getParameters = (callback) => {
