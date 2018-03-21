@@ -2,7 +2,8 @@ const VALID_CONFIG = 10;
 const BAD_CONFIG = 11;
 const INVALID_TOKEN = 12;
 const ALARM_ICON_INDICATOR = 'iconIndicator';
-const IS_DEBUG_ENABLED = true;
+
+let IS_DEBUG_ENABLED = false;
 
 /**
  * pingAPI will test if user params are ok and disable icon if not
@@ -298,13 +299,19 @@ const getParameters = (callback) => {
     owner: '',
     repository: '',
     oauthToken: '',
+    debug: '',
   }, (items) => {
     callback(items);
   });
 };
 
 const log = function() {
-  if (IS_DEBUG_ENABLED) {
-    console.log(...arguments);
-  }
+  getParameters((config) => {
+    IS_DEBUG_ENABLED = config.debug;
+
+    if (IS_DEBUG_ENABLED) {
+      console.log(...arguments);
+    }
+  });
+
 }

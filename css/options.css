@@ -1,0 +1,47 @@
+body {
+  padding: 10px;
+}
+
+fieldset#dev {
+  position: relative;
+  margin: 10px 0;
+  border-style: solid;
+  border-width: 1px 0 0 0;
+}
+
+fieldset#dev legend span {
+  display: inline-block;
+  padding-right: 1px;
+  color: #aaa;
+}
+
+fieldset#dev.open legend span {
+  color: black;
+  -webkit-transform: rotateX(180deg);
+  transform: rotateX(180deg);
+}
+
+fieldset#dev legend {
+  position: absolute;
+  top: -9px;
+  right: 10px;
+  cursor: pointer;
+  background-color: white;
+  color: #aaa;
+}
+
+fieldset#dev #debug_mode {
+  display: none;
+}
+
+fieldset#dev.open {
+  border: 1px solid black;
+}
+
+fieldset#dev.open legend {
+  color: black;
+}
+
+fieldset#dev.open #debug_mode {
+  display: block;
+}

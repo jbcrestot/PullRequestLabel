@@ -1,0 +1,23 @@
+@font-face {
+  font-family: "prc";
+  font-style: normal;
+  font-weight: normal;
+  src: url("/fonts/prc.woff") format("woff");
+  /* src: url('chrome-extension://__MSG_@@extension_id__/fonts/Stint Ultra Expanded.woff') format('woff'); */
+}
+
+.prc-font {
+  font-family: "prc";
+}
+
+.icon-caret:before {
+  content: "\e800";
+}
+
+.icon-cat:before {
+  content: "\e801";
+}
+
+.icon-gear:before {
+  content: "\e802";
+}

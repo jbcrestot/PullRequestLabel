@@ -5,68 +5,38 @@
  value "popup.html".
  -->
 <html>
-  <head>
-    <title>Getting Started Extension's Popup</title>
-    <style type="text/css">
-      body {
-        margin: 0;
-        white-space: nowrap;
-      }
 
-      p {
-        text-align: center;
-        font-weight: bold;
-        margin: 5px;
-      }
+<head>
+  <title>Getting Started Extension's Popup</title>
 
-      #container {
-        padding: 5px;
-        align-items: center;
-        display: flex;
-        justify-content: space-between;
-      }
+  <link rel="stylesheet" type="text/css" href="css/fonts.css" />
+  <link rel="stylesheet" type="text/css" href="css/popup.css" />
+  <link rel="stylesheet" type="text/css" href="css/loader.css" />
 
-      #config {
-        border-top: 1px solid lightgray;
-        height: 16px;
-        padding: 5px;
-      }
-      .pullRight {
-        float: right;
-      }
-      table, th, td {
-        border: 1px solid black;
-        border-collapse: collapse;
-      }
-      th, td {
-        padding: 15px;
-      }
-    </style>
-    <link rel="stylesheet" type="text/css" href="loader.css" />
-
-    <!--
+  <!--
       - JavaScript and HTML must be in separate files: see our Content Security
       - Policy documentation[1] for details and explanation.
       -
       - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
     -->
-    <script src="lib.js"></script>
-    <script src="popup.js"></script>
-  </head>
+  <script src="lib.js"></script>
+  <script src="popup.js"></script>
+</head>
 
-  <body>
-    <p>Watched Pull Request</p>
-    <div id="loader">
-      <div id="circle">
-        <div id="shadow"></div>
-        <div id="box"></div>
-      </div>
+<body>
+  <p>Watched Pull Request </p>
+  <div id="loader">
+    <div id="circle">
+      <div id="shadow"></div>
+      <div id="box"></div>
     </div>
-    <div id="container">
-      <div id="pr"></div>
-    </div>
-    <div id="config">
-      <img id="configButton" class="pullRight" src="gear.png" alt="config">
-    </div>
-  </body>
+  </div>
+  <div id="container">
+    <div id="pr"></div>
+  </div>
+  <div id="config">
+    <span id="configButton" class="pullRight prc-font icon-gear" />
+  </div>
+</body>
+
 </html>
