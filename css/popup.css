@@ -40,5 +40,28 @@ td {
 
 th,
 td {
-  padding: 15px;
+  padding: 0;
+}
+
+th.pr-number {
+  padding: 0 10px;
+}
+
+th div,
+td .label {
+  display: block;
+  min-height: 30px;
+  line-height: 30px;
+}
+
+td .label {
+  padding: 0 10px;
+}
+
+td .label:focus {
+  outline: none;
+}
+
+td {
+  text-align: center;
 }

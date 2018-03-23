@@ -1,79 +1,100 @@
 const VALID_CONFIG = 10;
 const BAD_CONFIG = 11;
 const INVALID_TOKEN = 12;
-const ALARM_ICON_INDICATOR = 'iconIndicator';
+const ALARM_ICON_INDICATOR = "iconIndicator";
+const GITHUB_URI = "https://github.com";
 
 let IS_DEBUG_ENABLED = false;
+let params = {
+  owner: undefined,
+  repository: undefined,
+  oauthToken: undefined,
+  labels: undefined
+};
 
 /**
  * pingAPI will test if user params are ok and disable icon if not
  */
 const pingAPI = (success, error) => {
-  getParameters((config) => {
+  getParameters(config => {
     call(
       getQuery(config.owner, config.repository),
       config.oauthToken,
-      (response) => {
+      response => {
         if (!response.errors) {
           success(VALID_CONFIG);
         } else {
           error(BAD_CONFIG);
         }
       },
-      (errorReason) => {
-        log('[pingAPI] error with reason: ', errorReason);
+      errorReason => {
+        log("[pingAPI] error with reason: ", errorReason);
         error(errorReason);
       }
-    )
+    );
   });
 };
 
-const getFilteredLabels = (callback) => {
-  getParameters((config) => {
+const getFilteredLabels = callback => {
+  getParameters(config => {
     call(
       getQuery(config.owner, config.repository),
       config.oauthToken,
-      (response) => {
+      response => {
         const orderedPRByLabel = orderPRByLabel(response);
-        const filteredPRByLabel = filterPRByLabel(config.labels, orderedPRByLabel);
-        log('[getFilteredLabels] filteredPRByLabel: ', filteredPRByLabel)
+        const filteredPRByLabel = filterPRByLabel(
+          config.labels,
+          orderedPRByLabel
+        );
+        log("[getFilteredLabels] filteredPRByLabel: ", filteredPRByLabel);
+        log(
+          "[getFilteredLabels] filteredPRByLabel.length: ",
+          filteredPRByLabel.length
+        );
         // if no object found
         !filteredPRByLabel.length
           ? callback(null)
           : callback(filteredPRByLabel);
       },
-      (errorReason) => {
-        log('[getFilteredLabels] error with reason: ', errorReason);
+      errorReason => {
+        log("[getFilteredLabels] error with reason: ", errorReason);
         callback(errorReason);
       }
-    )
+    );
   });
 };
 
 const updateIconIndicator = () => {
-  getParameters((config) => {
+  getParameters(config => {
     call(
       getQuery(config.owner, config.repository),
       config.oauthToken,
-      (response) => {
-        log('[updateIconIndicator] success with response: ', response);
+      response => {
+        log("[updateIconIndicator] success with response: ", response);
         const orderedPRByLabel = orderPRByLabel(response);
-        const filteredPRByLabel = filterPRByLabel(config.labels, orderedPRByLabel);
+        const filteredPRByLabel = filterPRByLabel(
+          config.labels,
+          orderedPRByLabel
+        );
         // if no object found
         if (!filteredPRByLabel.length) {
           return;
         }
 
         const topLabel = filteredPRByLabel[0];
-        chrome.browserAction.setBadgeText({text: topLabel.pullRequests.length.toString()});
-        chrome.browserAction.setBadgeBackgroundColor({color: '#'+topLabel.color});
+        chrome.browserAction.setBadgeText({
+          text: topLabel.pullRequests.length.toString()
+        });
+        chrome.browserAction.setBadgeBackgroundColor({
+          color: "#" + topLabel.color
+        });
       },
-      (errorReason) => {
-        log('[updateIconIndicator] error with reason: ', errorReason);
+      errorReason => {
+        log("[updateIconIndicator] error with reason: ", errorReason);
       }
-    )
+    );
   });
-}
+};
 
 /**
  * getFilteredLabels is used to format data by regrouping PR name by labels and
@@ -96,10 +117,10 @@ const updateIconIndicator = () => {
  *   }
  * ]
  */
-const orderPRByLabel = (data) => {
+const orderPRByLabel = data => {
   let orderedPRByLabel = [];
   // loop over each PR
-  data.data.repository.pullRequests.nodes.forEach((pr) => {
+  data.data.repository.pullRequests.nodes.forEach(pr => {
     const currentPullRequest = {
       id: pr.id,
       title: pr.title,
@@ -108,20 +129,23 @@ const orderPRByLabel = (data) => {
       reviews: pr.reviews.nodes.map(review => {
         return {
           author: review.author.login,
-          state: review.state,
-        }
-      }),
+          state: review.state
+        };
+      })
     };
     // loop over each labels
-    pr.labels.nodes.forEach((label) => {
-      const foundLabelId = orderedPRByLabel.findIndex((el) => label.name === el.name)
+    pr.labels.nodes.forEach(label => {
+      const foundLabelId = orderedPRByLabel.findIndex(
+        el => label.name === el.name
+      );
       foundLabelId > -1
         ? orderedPRByLabel[foundLabelId].pullRequests.push(currentPullRequest)
         : orderedPRByLabel.push({
-          name: label.name,
-          color: label.color,
-          pullRequests: [currentPullRequest]
-        });
+            name: label.name,
+            color: label.color,
+            url: getLabelUrl(label.name),
+            pullRequests: [currentPullRequest]
+          });
     });
   });
 
@@ -138,17 +162,17 @@ const orderPRByLabel = (data) => {
  */
 const filterPRByLabel = (watchedLabels, sortedLabels) => {
   const arrayLabels = watchedLabels
-    .split(',')
+    .split(",")
     .map(label => label.trim().toLowerCase());
 
-  const filteredLabels = sortedLabels.filter(
-    sortedLabel => arrayLabels.includes(sortedLabel.name.toLowerCase())
+  const filteredLabels = sortedLabels.filter(sortedLabel =>
+    arrayLabels.includes(sortedLabel.name.toLowerCase())
   );
 
   // saving data in local storage
-  saveData(filteredLabels, (status) => {
-    log('[filterPRByLabel] data saved with status: ', status);
-  })
+  saveData(filteredLabels, status => {
+    log("[filterPRByLabel] data saved with status: ", status);
+  });
 
   return filteredLabels;
 };
@@ -204,114 +228,164 @@ const githubMock = JSON.parse(`
 `);
 
 const call = (query, token, success, error) => {
-  const url = 'https://api.github.com/graphql';
+  const url = "https://api.github.com/graphql";
 
   var xhr = new XMLHttpRequest();
-  xhr.responseType = 'json';
+  xhr.responseType = "json";
   xhr.onreadystatechange = function() {
     if (xhr.readyState == XMLHttpRequest.DONE) {
-       if (xhr.status === 200) {
-         log('[call] success with response: ', xhr.response)
-         success(xhr.response);
-       } else {
-         log(`[call] fail with state: ${xhr.readyState}, status: ${xhr.status}, response: ${xhr.response}`);
-         // probably bad token
-         error(INVALID_TOKEN);
-       }
+      if (xhr.status === 200) {
+        log("[call] success with response: ", xhr.response);
+        success(xhr.response);
+      } else {
+        log(
+          `[call] fail with state: ${xhr.readyState}, status: ${
+            xhr.status
+          }, response: ${xhr.response}`
+        );
+        // probably bad token
+        error(INVALID_TOKEN);
+      }
     } else {
       // here are the not done state, if need to debug
     }
   };
 
   xhr.open("POST", url, true);
-  xhr.setRequestHeader('Authorization', 'Bearer '+token);
-  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader("Authorization", "Bearer " + token);
+  xhr.setRequestHeader("Content-Type", "application/json");
   xhr.timeout = 5000;
-  xhr.send(JSON.stringify({query: query}));
+  xhr.send(JSON.stringify({ query: query }));
 };
 
 const saveData = (data, callback) => {
-  chrome.storage.sync.set({
-    data: data,
-  }, () => {
-    log('[saveData] saving data: ', data)
-    callback('ok');
-  });
-}
+  chrome.storage.sync.set(
+    {
+      data: data
+    },
+    () => {
+      log("[saveData] saving data: ", data);
+      callback("ok");
+    }
+  );
+};
 
-const getData = (callback) => {
-  chrome.storage.sync.get({
-    data: '',
-  }, (items) => {
-    log('[getData] retrieved data: ', items.data);
-    callback(items.data);
-  });
-}
+const getData = callback => {
+  chrome.storage.sync.get(
+    {
+      data: ""
+    },
+    items => {
+      log("[getData] retrieved data: ", items.data);
+      callback(items.data);
+    }
+  );
+};
 
 const clearData = () => {
   chrome.storage.sync.clear(() => {
-    log('[clearData] data have been cleared');
+    log("[clearData] data have been cleared");
   });
-}
+};
 
 const addPullRequestToNotificationStack = (pullRequest, callback) => {
-  log('[addPullRequestToNotificationStack] incoming - pr: ', pullRequest);
-  chrome.storage.sync.get({
-    notifs: [],
-  }, (items) => {
-    log('[addPullRequestToNotificationStack] getData notifs: ', items.notifs);
-    items.notifs.push(pullRequest)
-    // save
-    chrome.storage.sync.set({
-      notifs: items.notifs,
-    }, () => {
-      log('[addPullRequestToNotificationStack] saving notifs: ', items.notifs)
-      callback && callback('ok');
-    });
-  });
+  log("[addPullRequestToNotificationStack] incoming - pr: ", pullRequest);
+  chrome.storage.sync.get(
+    {
+      notifs: []
+    },
+    items => {
+      log("[addPullRequestToNotificationStack] getData notifs: ", items.notifs);
+      items.notifs.push(pullRequest);
+      // save
+      chrome.storage.sync.set(
+        {
+          notifs: items.notifs
+        },
+        () => {
+          log(
+            "[addPullRequestToNotificationStack] saving notifs: ",
+            items.notifs
+          );
+          callback && callback("ok");
+        }
+      );
+    }
+  );
 };
 
 /**
  * Return the next notification data to display
  */
-const getNextNotif = (callback) => {
-  log('[getNextNotif] incoming - cb: ', callback);
-  chrome.storage.sync.get({
-    notifs: [],
-  }, (items) => {
-    log('[getNextNotif] getData notifs: ', items.notifs);
-    const firstPullRequest = items.notifs.shift();
+const getNextNotif = callback => {
+  log("[getNextNotif] incoming - cb: ", callback);
+  chrome.storage.sync.get(
+    {
+      notifs: []
+    },
+    items => {
+      log("[getNextNotif] getData notifs: ", items.notifs);
+      const firstPullRequest = items.notifs.shift();
 
-    // now we save back the notifications
-    chrome.storage.sync.set({
-      notifs: items.notifs,
-    }, () => {
-      log('[getNextNotif] saving notifs: ', items.notifs)
-    });
+      // now we save back the notifications
+      chrome.storage.sync.set(
+        {
+          notifs: items.notifs
+        },
+        () => {
+          log("[getNextNotif] saving notifs: ", items.notifs);
+        }
+      );
 
-    callback && callback(firstPullRequest);
-  });
+      callback && callback(firstPullRequest);
+    }
+  );
 };
 
-const getParameters = (callback) => {
-  chrome.storage.sync.get({
-    labels: '',
-    owner: '',
-    repository: '',
-    oauthToken: '',
-    debug: '',
-  }, (items) => {
-    callback(items);
-  });
+const getParameters = callback => {
+  chrome.storage.sync.get(
+    {
+      labels: "",
+      owner: "",
+      repository: "",
+      oauthToken: "",
+      debug: ""
+    },
+    items => {
+      params = { ...params, ...items };
+      IS_DEBUG_ENABLED = items.debug;
+      callback(params);
+    }
+  );
 };
 
 const log = function() {
-  getParameters((config) => {
-    IS_DEBUG_ENABLED = config.debug;
+  if (!params.oauthToken) {
+    getParameters(config => log(...arguments));
+    return;
+  }
 
-    if (IS_DEBUG_ENABLED) {
-      console.log(...arguments);
-    }
-  });
+  if (IS_DEBUG_ENABLED) {
+    console.log(...arguments);
+  }
+};
 
-}
+const Box = x => ({
+  map: f => Box(f(x)),
+  fold: f => f(x)
+});
+
+const getLabelUrl = labelName =>
+  Box(labelName)
+    .map(encodeURI)
+    .fold(encodedLabel =>
+      GITHUB_URI.concat(
+        "/",
+        params.owner,
+        "/",
+        params.repository,
+        "/pulls?q=is%3Apr+is%3Aopen+label%3A%22",
+        encodedLabel,
+        "%22"
+      )
+    );
